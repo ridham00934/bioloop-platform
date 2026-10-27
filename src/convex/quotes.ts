@@ -244,6 +244,8 @@ export const createQuote = mutation({
 });
 
 // Accept a quote and create an order transactionally.
+// This is the core quote-to-order flow: it verifies permissions, quote validity,
+// reserves inventory, creates the order + line item, and updates the RFQ.
 export const acceptQuote = mutation({
   args: {
     quoteId: v.id("quotes"),
@@ -323,6 +325,20 @@ export const acceptQuote = mutation({
 
     // Mark the quote accepted.
     await ctx.db.patch(quote._id, { status: "accepted" });
+
+    // Write an audit event for the acceptance.
+    await ctx.db.insert("admin_actions", {
+      actorId: userId,
+      actorOrgId: membership.organisationId,
+      action: "quote_acceptance",
+      targetResourceType: "quotes",
+      targetResourceId: undefined as unknown as undefined,
+      beforeState: { status: "pending" },
+      afterState: { status: "accepted" },
+      reason: `RFQ ${rfq._id} accepted`,
+      isDemo: false,
+      createdAt: Date.now(),
+    });
 
     // Persist the order line item.
     await ctx.db.insert("order_items", {

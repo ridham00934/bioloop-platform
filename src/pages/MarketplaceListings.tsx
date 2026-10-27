@@ -16,7 +16,9 @@ import { motion } from 'framer-motion';
 export default function MarketplaceListings() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const profile = useQuery(api.listings.listMarketplaceListings, { limit: 20 }) as unknown as ReturnType<typeof api.listings.listMarketplaceListings> extends Promise<infer U> ? U : never[] | undefined;
+  const profile = useQuery(api.listings.listMarketplaceListings, { limit: 20 });
+
+  const listings = (profile ?? []);
 
   return (
     <BioLoopShell>
@@ -48,7 +50,7 @@ export default function MarketplaceListings() {
             <div className="flex justify-center py-12">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </div>
-          ) : (profile ?? []).length === 0 ? (
+          ) : listings.length === 0 ? (
             <Card className="border-border/70 bg-card shadow-none">
               <CardHeader>
                 <CardTitle className="text-base font-semibold tracking-tight">No listings yet</CardTitle>
@@ -71,7 +73,7 @@ export default function MarketplaceListings() {
             </Card>
           ) : (
             <div className="flex flex-col gap-3">
-              {(profile ?? []).map((listing: any) => (
+              {listings.map((listing: any) => (
                 <Link key={listing._id} to={`/listings/${listing._id}`} className="block">
                   <Card className="border-border/70 bg-card shadow-none hover:border-primary/40 transition-colors">
                     <CardHeader className="flex flex-row items-start gap-3 pb-2">

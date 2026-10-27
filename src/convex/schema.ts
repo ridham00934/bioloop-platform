@@ -645,6 +645,25 @@ const schema = defineSchema(
       .index("by_organisation", ["organisationId"])
       .index("by_expiresAt", ["expiresAt"]),
 
+    // Order lifecycle helpers (audit events already recorded in admin_actions).
+    // biovalue calculations store inputs/outputs for reproducible estimates.
+    // shipments are created for logistics tracking.
+    // biovalue runs store inputs/outputs for reproducible estimates.
+    biovalue_runs: defineTable({
+      organisationId: v.id("organisations"),
+      createdBy: v.id("users"),
+      feedstockTypeId: v.id("feedstock_types"),
+      formulaVersion: v.string(),
+      inputs: v.optional(v.any()),
+      outputs: v.optional(v.any()),
+      assumptions: v.optional(v.string()),
+      note: v.optional(v.string()),
+      isDemo: v.boolean(),
+      createdAt: v.number(),
+    })
+      .index("by_organisation", ["organisationId"])
+      .index("by_created_by", ["createdBy"]),
+
     // Disputes.
     disputes: defineTable({
       organisationId: v.id("organisations"),
