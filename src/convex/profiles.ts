@@ -1,10 +1,10 @@
 import { query } from "./_generated/server";
-import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const profile = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await ctx.auth.getUserId();
+    const userId = await getAuthUserId(ctx);
     if (userId === null) {
       return null;
     }
@@ -20,8 +20,8 @@ export const profile = query({
 
     const membership = await ctx.db
       .query("memberships")
-      .withIndex("by_user_organisation", (q) =>
-        q.eq("userId", userId).eq("isCurrent", true)
+      .withIndex("by_current_user", (q) =>
+        q.eq("userId", userId)
       )
       .first();
 
@@ -30,14 +30,20 @@ export const profile = query({
       profile.organisationId ?? membership?.organisationId;
 
     let orgSlug: string | undefined;
-    let membershipId = profile.organisationMembershipId ?? membership?._id;
+    const membershipId =
+      profile.organisationMembershipId ?? membership?._id;
 
     if (organisationId) {
-      const org = await ctx.db.get<typeof ctx.db.get>(organisationId);
-      if (org) {
-        orgSlug = org.slug;
+      const org = await ctx.db.get(organisationId);
+      if (org && typeof org === "object" && "slug" in org) {
+        orgSlug = org.slug as string;
       }
     }
+
+    const role =
+      membership && typeof membership === "object" && "role" in membership
+        ? (membership as { role?: unknown }).role
+        : undefined;
 
     return {
       userId: profile.userId,
@@ -47,20 +53,26 @@ export const profile = query({
       displayName: profile.displayName,
       phone: profile.phone,
       jobTitle: profile.jobTitle,
-      // Expose role from the current membership for the sidebar.
-      role: (membership ?? profile).role,
-    };
+      role: typeof role === "string" ? role : undefined,
+    } satisfies ProfileView;
   },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const currentUserId = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await ctx.auth.getUserId();
-    return userId;
+    return await getAuthUserId(ctx);
   },
 });
 
-// This table import is used elsewhere; keep it typed.
-export type ProfileView = Awaited<ReturnType<typeof profile>>;
+// Re-export a typed profile view for convenience.
+export type ProfileView = {
+  userId: unknown;
+  organisationId: unknown;
+  organisationSlug: string | undefined;
+  organisationMembershipId: unknown;
+  displayName: string | undefined;
+  phone: string | undefined;
+  jobTitle: string | undefined;
+  role: unknown;
+};

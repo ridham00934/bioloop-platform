@@ -3,13 +3,42 @@ import { BioLoopLogo } from '@/components/BioLoopLogo';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarProvider, SidebarTrigger, SidebarMenuButton } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Separator,
+} from '@/components/ui/separator';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery } from 'convex/react';
+import { api } from '@/convex/_generated/api';
 import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 
-const ORG_ROUTE_NAMES = [
+type IconComponent = React.ComponentType<{ className?: string }>;
+
+interface SidebarLink {
+  to: string;
+  label: string;
+  icon: IconComponent;
+  roles: string[];
+}
+
+const ORG_ROUTE_NAMES: SidebarLink[] = [
   { to: '/dashboard', label: 'Overview', icon: BarChart3, roles: ['supplier', 'buyer', 'processor', 'logistics', 'admin'] },
   { to: '/marketplace', label: 'Marketplace', icon: Search, roles: ['supplier', 'buyer', 'processor', 'logistics', 'admin'] },
-  { to: '/listings', label: 'My Listings', icon: Kitten, roles: ['supplier', 'admin'] },
+  { to: '/listings', label: 'My Listings', icon: ListIcon, roles: ['supplier', 'admin'] },
   { to: '/rfqs', label: 'Requests for Quotation', icon: FileQuestion, roles: ['buyer', 'supplier', 'admin'] },
   { to: '/quotes', label: 'Quotes', icon: Receipt, roles: ['buyer', 'supplier', 'admin'] },
   { to: '/orders', label: 'Orders', icon: Graduation, roles: ['supplier', 'buyer', 'processor', 'logistics', 'admin'] },
@@ -27,7 +56,7 @@ const ORG_ROUTE_NAMES = [
   { to: '/ai-assistant', label: 'AI Assistant', icon: Sparkles, roles: ['supplier', 'buyer', 'processor', 'logistics', 'admin'] },
 ];
 
-const ADMIN_ROUTE_NAMES = [
+const ADMIN_ROUTE_NAMES: SidebarLink[] = [
   { to: '/admin', label: 'Admin overview', icon: Shield, roles: ['admin'] },
   { to: '/admin/verification', label: 'Verification queue', icon: Check, roles: ['admin'] },
   { to: '/admin/users', label: 'Users & organisations', icon: User, roles: ['admin'] },
@@ -37,6 +66,14 @@ const ADMIN_ROUTE_NAMES = [
   { to: '/admin/integrations', label: 'Integration health', icon: Cpu, roles: ['admin'] },
   { to: '/admin/data-quality', label: 'Data quality', icon: Magnet, roles: ['admin'] },
 ];
+
+function ListIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+    </svg>
+  );
+}
 
 function Heart({ className }: { className?: string }) {
   return (
@@ -112,11 +149,131 @@ function Leaf({ className }: { className?: string }) {
   );
 }
 
-interface SidebarLink {
-  to: string;
-  label: string;
-  icon: React.ElementType;
-  roles: string[];
+function Truck({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 01-3 0M15 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 01-3 0M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+    </svg>
+  );
+}
+
+function BarChart3({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M3 3v18h18M18.75 9.75a3 3 0 01-3 3m-5.25-3a3 3 0 01-3 3m4.5 3a3 3 0 01-3 3M9 15l3 3 3-3M12 18v-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function Search({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <circle cx="11.25" cy="11.25" r="6.75" />
+      <path d="M21 21l-3.75-3.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function Shield({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+    </svg>
+  );
+}
+
+function Bell({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+    </svg>
+  );
+}
+
+function Building({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M3.75 21h16.5M4.5 3h15M6 6h12M6 12h12M6 18h12" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function User({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <circle cx="9" cy="7" r="4" />
+      <path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
+      <circle cx="17" cy="7" r="3.5" />
+      <path d="M21 21v-2a3.5 3.5 0 00-3.5-3.5H15.5A3.5 3.5 0 0012 15.5V21" />
+    </svg>
+  );
+}
+
+function MessageSquare({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M4 14.832A7.968 7.968 0 018.5 9a7.968 7.968 0 014.5-3.168A7.968 7.968 0 0116.5 9c.895 0 1.76.202 2.5.568V21l4-4H4z" />
+    </svg>
+  );
+}
+
+function LineChart({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M3 3v18h18M9.75 15.75a3 3 0 01-3-3m3 3a3 3 0 003-3m-3 3v3m0 0v3m0-3h3m-3 0H6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function FileQuestion({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z" />
+      <path d="M14 2v6h6M9.5 12.5a2.121 2.121 0 013 3L12 17l-3.5 1.5a2.121 2.121 0 01-3-3V12.5z" />
+    </svg>
+  );
+}
+
+function Receipt({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M9 12h6m-6 4h6m2 5H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-1v4.5A2.5 2.5 0 0019 19H6a2.5 2.5 0 00-2.5-2.5V21z" />
+    </svg>
+  );
+}
+
+function Graduation({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+      <path d="M6 12v5c3 3 9 3 12 0v-5" />
+    </svg>
+  );
+}
+
+function HelpCircle({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LogOut({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M9 15l6-6m0 0l6 6m-6-6v12" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function Loader2({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 function SidebarLink({
@@ -150,11 +307,7 @@ function SidebarLink({
           isActive ? 'bg-primary/10 text-primary' : 'text-foreground/50 group-hover:text-foreground',
         )}
       >
-        {({ open }) => (
-          <span className={cn('transition-transform', open && 'rotate-90')}>
-            <item.icon className="h-4 w-4" />
-          </span>
-        )}
+        <item.icon className="h-4 w-4" />
       </SidebarMenuButton>
       {item.label}
     </NavLink>
@@ -186,7 +339,6 @@ function AccountMenu() {
   };
 
   const name = user?.name || user?.email?.split('@')[0] || 'Account';
-  const picture = user?.image;
 
   return (
     <DropdownMenu>
@@ -248,9 +400,9 @@ export function BioLoopShell({ children }: { children: ReactNode }) {
   const notifications = useQuery(api.notifications.list, { limit: 10 });
   const unreadCount = notifications?.reduce((acc, n) => acc + (n.read === false ? 1 : 0), 0) ?? 0;
 
-  const currentRole = profile?.organisationMembership?.role;
+  const currentRole = profile?.role;
 
-  if (isLoading || user === undefined || profile === undefined) {
+  if (isLoading || user === undefined || profile == null) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -259,23 +411,23 @@ export function BioLoopShell({ children }: { children: ReactNode }) {
   }
 
   const orgSlug = profile.organisationSlug;
-  const roleLabel = currentRole || 'member';
+  const roleLabel = typeof currentRole === 'string' ? currentRole : 'member';
 
   return (
     <SidebarProvider>
       <TooltipProvider delayDuration={0}>
         <div className="flex min-h-screen bg-background">
           {/* Sidebar */}
-          <Sidebar side="left" className="border-r rule">
-            <SidebarHeader className="flex items-center gap-2 border-b pb-3">
-              <BioLoopLogo className="h-6 w-6 text-olive" />
-              <span className="text-sm font-semibold tracking-tight text-foreground">BioLoop</span>
+          <Sidebar side="left" className="border-r">
+            <SidebarHeader className="flex items-center gap-2 border-b px-4 py-3">
+              <BioLoopLogo className="h-6 w-6" />
+              <span className="text-sm font-semibold tracking-tight">BioLoop</span>
               <SidebarTrigger className="ml-auto" />
             </SidebarHeader>
 
-            <SidebarContent className="pt-2">
-              <nav className="flex flex-col gap-1 px-2">
-                <div className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <SidebarContent className="px-2 py-2">
+              <nav className="flex flex-col gap-1">
+                <div className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   {orgSlug || 'Workspace'}
                 </div>
                 <Separator className="my-1" />
@@ -306,15 +458,15 @@ export function BioLoopShell({ children }: { children: ReactNode }) {
           {/* Main */}
           <SidebarInset className="flex flex-col min-h-screen">
             {/* Top bar */}
-            <header className="sticky top-0 z-20 flex items-center justify-between border-b bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 px-4 py-3 sm:px-6 lg:px-8">
+            <header className="sticky top-0 z-20 flex items-center justify-between border-b bg-card/80 px-4 py-3 sm:px-6 lg:px-8">
               <div className="flex items-center gap-3">
                 <SidebarTrigger className="-ml-1 hidden lg:flex" />
                 <div className="flex flex-col gap-0.5">
                   <span className="text-xs font-medium text-muted-foreground">
-                    {orgSlug || 'Your workspace'}
+                    {orgSlug ? orgSlug : 'Your workspace'}
                   </span>
-                  <span className="text-sm font-semibold tracking-tight text-foreground">
-                    {roleLabel.charAt(0).toUpperCase() + roleLabel.slice(1)} view
+                  <span className="text-sm font-semibold tracking-tight">
+                    {(roleLabel.charAt(0).toUpperCase() + roleLabel.slice(1))} view
                   </span>
                 </div>
               </div>

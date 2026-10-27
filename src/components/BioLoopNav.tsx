@@ -6,6 +6,16 @@ import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
+function Leaf({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path d="M11.35 3.836c-2.361 0-4.245.508-5.674 1.414-1.474.926-2.317 2.28-2.317 4.027 0 1.747.843 3.064 2.317 4.027 1.429.906 3.313 1.414 5.674 1.414 2.361 0 4.245-.508 5.674-1.414 1.474-.926 2.317-2.28 2.317-4.027 0-1.747-.843-3.064-2.317-4.027-1.429-.906-3.313-1.414-5.674-1.414z" />
+      <path d="M3.836 11.35c0-2.361.508-4.245 1.414-5.674.926-1.474 2.28-2.317 4.027-2.317 1.747 0 3.064.843 4.027 2.317 1.414.906 2.317 2.28 2.317 4.027 0 2.361-.508 4.245-1.414 5.674-.926 1.474-2.28 2.317-4.027 2.317-1.747 0-3.064-.843-4.027-2.317-1.414-.906-2.317-2.28-2.317-4.027z" />
+      <path d="M12 21a9 9 0 109-9 9 9 0 00-9 9z" />
+    </svg>
+  );
+}
+
 const NAV_LINKS = [
   { to: '/marketplace', label: 'Marketplace' },
   { to: '/how-it-works', label: 'How It Works' },
@@ -40,7 +50,7 @@ export function BioLoopNav() {
                       className={cn(
                         navigationMenuTriggerStyle(),
                         'text-sm font-medium text-foreground/80 transition-colors',
-                        location === link.to ? 'text-foreground font-semibold' : '',
+                        location.pathname === link.to ? 'text-foreground font-semibold' : '',
                       )}
                     >
                       {link.label}

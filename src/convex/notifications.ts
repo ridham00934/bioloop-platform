@@ -1,5 +1,24 @@
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+
+// linkParams is stored as a generic field but limited to simple scalars
+// for notification deep-links.
+export const linkParamsValidator = v.optional(
+  v.object({
+    id: v.optional(v.string()),
+    kind: v.optional(v.string()),
+    slug: v.optional(v.string()),
+    status: v.optional(v.string()),
+  })
+);
+
+type LinkParams = {
+  id?: string;
+  kind?: string;
+  slug?: string;
+  status?: string;
+};
 
 export const list = query({
   args: {
@@ -7,17 +26,8 @@ export const list = query({
     unreadOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await ctx.auth.getUserId();
+    const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      return [];
-    }
-
-    const org = await ctx.db
-      .query("memberships")
-      .withIndex("by_current_user", (q) => q.eq("userId", userId).eq("isCurrent", true))
-      .first();
-
-    if (!org) {
       return [];
     }
 
@@ -25,21 +35,27 @@ export const list = query({
       .query("notifications")
       .withIndex("by_user", (q) => q.eq("userId", userId));
 
-    if (args.unreadOnly) {
-      base.withIndex("by_read", (q) => q.eq("read", false));
-    }
+    const items =
+      args.unreadOnly === true
+        ? await ctx.db
+            .query("notifications")
+            .withIndex("by_read", (q) => q.eq("read", false))
+            .take(args.limit)
+        : await base.take(args.limit);
 
-    const items = await base
-      .order("desc", "createdAt")
-      .take(args.limit);
+    // If unread-only mode was used, filter to the current user manually.
+    const filtered =
+      args.unreadOnly === true
+        ? (items ?? []).filter((item) => item.userId === userId)
+        : items ?? [];
 
-    return items?.map((item) => ({
+    return filtered.map((item) => ({
       _id: item._id,
       type: item.type,
       title: item.title,
       body: item.body,
       linkTo: item.linkTo,
-      linkParams: item.linkParams,
+      linkParams: (item.linkParams as unknown as LinkParams) ?? null,
       read: item.read,
       createdAt: item.createdAt,
     }));
@@ -51,7 +67,7 @@ export const markRead = mutation({
     notificationId: v.id("notifications"),
   },
   handler: async (ctx, args) => {
-    const userId = await ctx.auth.getUserId();
+    const userId = await getAuthUserId(ctx);
     if (userId === null) {
       throw new Error("Not authenticated");
     }
@@ -72,23 +88,24 @@ export const markRead = mutation({
 export const markAllRead = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await ctx.auth.getUserId();
+    const userId = await getAuthUserId(ctx);
     if (userId === null) {
       throw new Error("Not authenticated");
     }
 
-    const notifications = await ctx.db
+    const userNotifications = await ctx.db
       .query("notifications")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .withIndex("by_read", (q) => q.eq("read", false))
       .take(1000);
 
-    if (!notifications) {
+    if (!userNotifications) {
       return;
     }
 
-    for (const n of notifications) {
-      await ctx.db.patch(n._id, { read: true });
+    for (const n of userNotifications) {
+      if (n.read === false) {
+        await ctx.db.patch(n._id, { read: true });
+      }
     }
   },
 });
@@ -102,11 +119,9 @@ export const createNotification = mutation({
     title: v.string(),
     body: v.string(),
     linkTo: v.optional(v.string()),
-    linkParams: v.optional(v.record(v.string(), v.any())), // NOTE: v.any() not supported; kept narrow below
+    linkParams: linkParamsValidator,
   },
   handler: async (ctx, args) => {
-    // Cast away the too-wide validator above; keep runtime shape narrow.
-    const linkParams = args.linkParams ?? {};
     await ctx.db.insert("notifications", {
       userId: args.userId,
       organisationId: args.organisationId,
@@ -114,7 +129,7 @@ export const createNotification = mutation({
       title: args.title,
       body: args.body,
       linkTo: args.linkTo,
-      linkParams,
+      linkParams: args.linkParams ?? {},
       read: false,
       createdAt: Date.now(),
     });

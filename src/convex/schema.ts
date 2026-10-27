@@ -181,7 +181,7 @@ export const BIOVALUE_FORMULA_VERSIONS = {
 export const biovalueFormulaVersionValidator = v.literal(BIOVALUE_FORMULA_VERSIONS.V1);
 export type BiovalueFormulaVersion = Infer<typeof biovalueFormulaVersionValidator>;
 
-export const MATcher_RULES_VERSIONS = {
+export const MATCHER_RULES_VERSIONS = {
   V1: "matcher-v1",
 } as const;
 
@@ -365,7 +365,7 @@ const schema = defineSchema(
       actorOrgId: v.id("organisations"),
       note: v.optional(v.string()),
       location: v.optional(v.string()),
-      data: v.optional(v.generic("any")),
+      data: v.optional(v.any()),
       evidenceLevel: v.optional(v.string()),
       createdAt: v.number(),
     }).index("by_batch", ["batchId"]),
@@ -389,7 +389,7 @@ const schema = defineSchema(
       labName: v.string(),
       testDate: v.number(),
       parameters: v.array(v.string()),
-      results: v.optional(v.generic("any")),
+      results: v.optional(v.any()),
       reportStorageId: v.optional(v.string()),
       evidenceLevel: v.string(),
       isDemo: v.boolean(),
@@ -534,7 +534,7 @@ const schema = defineSchema(
       organisationId: v.id("organisations"),
       createdBy: v.id("users"),
       name: v.string(),
-      filters: v.optional(v.generic("any")),
+      filters: v.optional(v.any()),
       createdAt: v.number(),
     })
       .index("by_organisation", ["organisationId"])
@@ -560,7 +560,7 @@ const schema = defineSchema(
       createdAt: v.number(),
     })
       .index("by_organisation", ["organisationId"])
-      .index("by_rfqi", ["relatedRfqi"])
+      .index("by_rfqi", ["relatedRfqId"])
       .index("by_order", ["relatedOrderId"]),
 
     messages: defineTable({
@@ -582,7 +582,7 @@ const schema = defineSchema(
       title: v.string(),
       body: v.string(),
       linkTo: v.optional(v.string()),
-      linkParams: v.optional(v.generic("any")),
+      linkParams: v.optional(v.any()),
       read: v.boolean(),
       createdAt: v.number(),
     })
@@ -597,8 +597,8 @@ const schema = defineSchema(
       createdBy: v.id("users"),
       feedstockTypeId: v.id("feedstock_types"),
       formulaVersion: v.string(),
-      inputs: v.optional(v.generic("any")),
-      outputs: v.optional(v.generic("any")),
+      inputs: v.optional(v.any()),
+      outputs: v.optional(v.any()),
       assumptions: v.optional(v.string()),
       note: v.optional(v.string()),
       isDemo: v.boolean(),
@@ -636,7 +636,7 @@ const schema = defineSchema(
       action: v.string(),
       subjectResourceId: v.optional(v.id("misc")), // use generic for broad resource refs
       subjectResourceType: v.string(),
-      proposedInput: v.generic("any"),
+      proposedInput: v.any(),
       expiresAt: v.number(),
       isDemo: v.boolean(),
       createdAt: v.number(),
@@ -684,8 +684,8 @@ const schema = defineSchema(
       action: v.string(),
       targetResourceType: v.string(),
       targetResourceId: v.optional(v.id("misc")),
-      beforeState: v.optional(v.generic("any")),
-      afterState: v.optional(v.generic("any")),
+      beforeState: v.optional(v.any()),
+      afterState: v.optional(v.any()),
       reason: v.optional(v.string()),
       isDemo: v.boolean(),
       createdAt: v.number(),
@@ -715,7 +715,7 @@ const schema = defineSchema(
       organisationId: v.id("organisations"),
       createdBy: v.id("users"),
       rulesVersion: v.string(),
-      inputSnapshot: v.optional(v.generic("any")),
+      inputSnapshot: v.optional(v.any()),
       resultCount: v.number(),
       name: v.optional(v.string()),
       isDemo: v.boolean(),

@@ -1,6 +1,7 @@
 import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
+import { RequireAdmin } from "@/components/RequireAdmin";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
@@ -25,7 +26,7 @@ const SignUpPage = lazy(() => import("./pages/SignUpPage.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
-const AppShell = lazy(() => import("./components/BioLoopShell.tsx"));
+const AppShell = lazy(() => import("./components/BioLoopShell").then(m => ({ default: m.BioLoopShell })));
 const MarketplaceListings = lazy(() => import("./pages/MarketplaceListings.tsx"));
 const ListingDetails = lazy(() => import("./pages/ListingDetails.tsx"));
 const MyListings = lazy(() => import("./pages/MyListings.tsx"));
@@ -152,16 +153,20 @@ function RouteSyncer() {
 }
 
 
-function ProtectedRoute({ path, redirectAfterAuth, children }: {
+function ProtectedRouteEl({
+  path,
+  redirectImmediately = false,
+  children,
+}: {
   path: string;
-  redirectAfterAuth?: string;
+  redirectImmediately?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <Route
       path={path}
       element={
-        <RequireAuth redirectAfterAuth={redirectAfterAuth ?? "/auth"}>
+        <RequireAuth redirectImmediately={redirectImmediately}>
           <AppShell>{children}</AppShell>
         </RequireAuth>
       }
@@ -197,7 +202,7 @@ createRoot(document.getElementById("root")!).render(
               {/* Auth */}
               <Route
                 path="/auth"
-                element={<AuthPage redirectAfterAuth="/dashboard" />}
+                element={<AuthPage />}
               />
 
               {/* Public listing detail */}
@@ -207,104 +212,120 @@ createRoot(document.getElementById("root")!).render(
               />
 
               {/* Protected */}
-              <ProtectedRoute path="/dashboard" redirectAfterAuth="/dashboard">
+              <ProtectedRouteEl path="/dashboard" redirectImmediately>
                 <Dashboard />
-              </ProtectedRoute>
-              <ProtectedRoute path="/listings">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/listings">
                 <MyListings />
-              </ProtectedRoute>
-              <ProtectedRoute path="/listings/new">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/listings/new">
                 <CreateListing />
-              </ProtectedRoute>
-              <ProtectedRoute path="/listings/:id/edit">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/listings/:id/edit">
                 <EditListing />
-              </ProtectedRoute>
-              <ProtectedRoute path="/marketplace/listings">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/marketplace/listings">
                 <MarketplaceListings />
-              </ProtectedRoute>
-              <ProtectedRoute path="/rfqs">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/rfqs">
                 <RFQs />
-              </ProtectedRoute>
-              <ProtectedRoute path="/rfqs/new">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/rfqs/new">
                 <CreateRFQ />
-              </ProtectedRoute>
-              <ProtectedRoute path="/quotes">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/quotes">
                 <Quotes />
-              </ProtectedRoute>
-              <ProtectedRoute path="/quotes/:id">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/quotes/:id">
                 <QuoteDetails />
-              </ProtectedRoute>
-              <ProtectedRoute path="/orders">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/orders">
                 <Orders />
-              </ProtectedRoute>
-              <ProtectedRoute path="/orders/:id">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/orders/:id">
                 <OrderDetails />
-              </ProtectedRoute>
-              <ProtectedRoute path="/shipments">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/shipments">
                 <Shipments />
-              </ProtectedRoute>
-              <ProtectedRoute path="/messages">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/messages">
                 <Messages />
-              </ProtectedRoute>
-              <ProtectedRoute path="/saved-materials">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/saved-materials">
                 <SavedMaterials />
-              </ProtectedRoute>
-              <ProtectedRoute path="/passports">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/passports">
                 <BioPassports />
-              </ProtectedRoute>
-              <ProtectedRoute path="/passports/:id">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/passports/:id">
                 <BioPassportPage />
-              </ProtectedRoute>
-              <ProtectedRoute path="/biovalue-calculator">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/biovalue-calculator">
                 <BioValueCalculator />
-              </ProtectedRoute>
-              <ProtectedRoute path="/smart-matcher">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/smart-matcher">
                 <SmartMatcherPage />
-              </ProtectedRoute>
-              <ProtectedRoute path="/bioroute">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/bioroute">
                 <BioRoutePage />
-              </ProtectedRoute>
-              <ProtectedRoute path="/impact-ledger">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/impact-ledger">
                 <ImpactLedger />
-              </ProtectedRoute>
-              <ProtectedRoute path="/notifications">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/notifications">
                 <NotificationsPage />
-              </ProtectedRoute>
-              <ProtectedRoute path="/settings/profile">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/settings/profile">
                 <SettingsProfile />
-              </ProtectedRoute>
-              <ProtectedRoute path="/settings/organisation">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/settings/organisation">
                 <SettingsOrganisation />
-              </ProtectedRoute>
-              <ProtectedRoute path="/ai-assistant">
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/ai-assistant">
                 <AIAssistantPage />
-              </ProtectedRoute>
+              </ProtectedRouteEl>
 
               {/* Admin */}
-              <ProtectedRoute path="/admin">
-                <AdminOverview />
-              </ProtectedRoute>
-              <ProtectedRoute path="/admin/verification">
-                <AdminVerification />
-              </ProtectedRoute>
-              <ProtectedRoute path="/admin/users">
-                <AdminUsers />
-              </ProtectedRoute>
-              <ProtectedRoute path="/admin/taxonomy">
-                <AdminTaxonomy />
-              </ProtectedRoute>
-              <ProtectedRoute path="/admin/disputes">
-                <AdminDisputes />
-              </ProtectedRoute>
-              <ProtectedRoute path="/admin/audit">
-                <AdminAudit />
-              </ProtectedRoute>
-              <ProtectedRoute path="/admin/integrations">
-                <AdminIntegrations />
-              </ProtectedRoute>
-              <ProtectedRoute path="/admin/data-quality">
-                <AdminDataQuality />
-              </ProtectedRoute>
+              <ProtectedRouteEl path="/admin">
+                <RequireAdmin>
+                  <AdminOverview />
+                </RequireAdmin>
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/admin/verification">
+                <RequireAdmin>
+                  <AdminVerification />
+                </RequireAdmin>
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/admin/users">
+                <RequireAdmin>
+                  <AdminUsers />
+                </RequireAdmin>
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/admin/taxonomy">
+                <RequireAdmin>
+                  <AdminTaxonomy />
+                </RequireAdmin>
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/admin/disputes">
+                <RequireAdmin>
+                  <AdminDisputes />
+                </RequireAdmin>
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/admin/audit">
+                <RequireAdmin>
+                  <AdminAudit />
+                </RequireAdmin>
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/admin/integrations">
+                <RequireAdmin>
+                  <AdminIntegrations />
+                </RequireAdmin>
+              </ProtectedRouteEl>
+              <ProtectedRouteEl path="/admin/data-quality">
+                <RequireAdmin>
+                  <AdminDataQuality />
+                </RequireAdmin>
+              </ProtectedRouteEl>
 
               <Route path="*" element={<NotFound />} />
             </Routes>
