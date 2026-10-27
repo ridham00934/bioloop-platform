@@ -162,6 +162,13 @@ function ProtectedRouteEl({
   redirectImmediately?: boolean;
   children: React.ReactNode;
 }) {
+  // <Routes> only accepts <Route> (or <React.Fragment>) as direct children.
+  // We keep this component inside <Routes> as a JSX element, but it returns a
+  // <Route> from its render, so React Router never sees it as a non-route child.
+  if (!children) {
+    throw new Error("ProtectedRouteEl requires children");
+  }
+
   return (
     <Route
       path={path}
@@ -173,6 +180,7 @@ function ProtectedRouteEl({
     />
   );
 }
+
 
 
 createRoot(document.getElementById("root")!).render(
