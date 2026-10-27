@@ -7,7 +7,10 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { useContext, useMemo } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import "./index.css";
 
 // Lazy load route components for better code splitting
@@ -26,7 +29,7 @@ const SignUpPage = lazy(() => import("./pages/SignUpPage.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
-const AppShell = lazy(() => import("./components/BioLoopShell").then(m => ({ default: m.BioLoopShell })));
+const AppShell = lazy(() => import("./components/BioLoopShell").then((m) => ({ default: m.BioLoopShell })));
 const MarketplaceListings = lazy(() => import("./pages/MarketplaceListings.tsx"));
 const ListingDetails = lazy(() => import("./pages/ListingDetails.tsx"));
 const MyListings = lazy(() => import("./pages/MyListings.tsx"));
@@ -153,31 +156,44 @@ function RouteSyncer() {
 }
 
 
-function ProtectedRouteEl({
-  path,
-  redirectImmediately = false,
-  children,
-}: {
-  path: string;
-  redirectImmediately?: boolean;
-  children: React.ReactNode;
-}) {
-  // <Routes> only accepts <Route> (or <React.Fragment>) as direct children.
-  // We keep this component inside <Routes> as a JSX element, but it returns a
-  // <Route> from its render, so React Router never sees it as a non-route child.
+function ProtectedRouteEl({ children, redirectImmediately = false }: { children?: React.ReactNode; redirectImmediately?: boolean }) {
+  // Plain wrapper component — NOT a <Route>. React Router v6 only allows
+  // <Route> (or <React.Fragment>) as a direct child of <Routes>, so this
+  // component must never return a <Route>.
   if (!children) {
     throw new Error("ProtectedRouteEl requires children");
   }
 
+  // Keep behavior consistent with the original redirect-immediately intent:
+  // if the route wants an immediate bounce to /login when unauthenticated, honor
+  // that; otherwise fall back to RequireAuth's blocked screen for better UX.
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    if (redirectImmediately) {
+      return <Navigate to="/login" replace />;
+    }
+
+    // Show RequireAuth's own blocked screen instead of silently redirecting.
+    return (
+      <AppShell>
+        <RequireAuth>{children}</RequireAuth>
+      </AppShell>
+    );
+  }
+
   return (
-    <Route
-      path={path}
-      element={
-        <RequireAuth redirectImmediately={redirectImmediately}>
-          <AppShell>{children}</AppShell>
-        </RequireAuth>
-      }
-    />
+    <AppShell>
+      <RequireAuth>{children}</RequireAuth>
+    </AppShell>
   );
 }
 
@@ -220,120 +236,67 @@ createRoot(document.getElementById("root")!).render(
               />
 
               {/* Protected */}
-              <ProtectedRouteEl path="/dashboard" redirectImmediately>
-                <Dashboard />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/listings">
-                <MyListings />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/listings/new">
-                <CreateListing />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/listings/:id/edit">
-                <EditListing />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/marketplace/listings">
-                <MarketplaceListings />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/rfqs">
-                <RFQs />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/rfqs/new">
-                <CreateRFQ />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/quotes">
-                <Quotes />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/quotes/:id">
-                <QuoteDetails />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/orders">
-                <Orders />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/orders/:id">
-                <OrderDetails />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/shipments">
-                <Shipments />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/messages">
-                <Messages />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/saved-materials">
-                <SavedMaterials />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/passports">
-                <BioPassports />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/passports/:id">
-                <BioPassportPage />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/biovalue-calculator">
-                <BioValueCalculator />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/smart-matcher">
-                <SmartMatcherPage />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/bioroute">
-                <BioRoutePage />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/impact-ledger">
-                <ImpactLedger />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/notifications">
-                <NotificationsPage />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/settings/profile">
-                <SettingsProfile />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/settings/organisation">
-                <SettingsOrganisation />
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/ai-assistant">
-                <AIAssistantPage />
-              </ProtectedRouteEl>
+              <Route
+                path="/dashboard"
+                element={<ProtectedRouteEl><Dashboard /></ProtectedRouteEl>}
+              />
+              <Route path="/listings" element={<ProtectedRouteEl><MyListings /></ProtectedRouteEl>} />
+              <Route path="/listings/new" element={<ProtectedRouteEl><CreateListing /></ProtectedRouteEl>} />
+              <Route path="/listings/:id/edit" element={<ProtectedRouteEl><EditListing /></ProtectedRouteEl>} />
+              <Route path="/marketplace/listings" element={<ProtectedRouteEl><MarketplaceListings /></ProtectedRouteEl>} />
+              <Route path="/rfqs" element={<ProtectedRouteEl><RFQs /></ProtectedRouteEl>} />
+              <Route path="/rfqs/new" element={<ProtectedRouteEl><CreateRFQ /></ProtectedRouteEl>} />
+              <Route path="/quotes" element={<ProtectedRouteEl><Quotes /></ProtectedRouteEl>} />
+              <Route path="/quotes/:id" element={<ProtectedRouteEl><QuoteDetails /></ProtectedRouteEl>} />
+              <Route path="/orders" element={<ProtectedRouteEl><Orders /></ProtectedRouteEl>} />
+              <Route path="/orders/:id" element={<ProtectedRouteEl><OrderDetails /></ProtectedRouteEl>} />
+              <Route path="/shipments" element={<ProtectedRouteEl><Shipments /></ProtectedRouteEl>} />
+              <Route path="/messages" element={<ProtectedRouteEl><Messages /></ProtectedRouteEl>} />
+              <Route path="/saved-materials" element={<ProtectedRouteEl><SavedMaterials /></ProtectedRouteEl>} />
+              <Route path="/passports" element={<ProtectedRouteEl><BioPassports /></ProtectedRouteEl>} />
+              <Route path="/passports/:id" element={<ProtectedRouteEl><BioPassportPage /></ProtectedRouteEl>} />
+              <Route path="/biovalue-calculator" element={<ProtectedRouteEl><BioValueCalculator /></ProtectedRouteEl>} />
+              <Route path="/smart-matcher" element={<ProtectedRouteEl><SmartMatcherPage /></ProtectedRouteEl>} />
+              <Route path="/bioroute" element={<ProtectedRouteEl><BioRoutePage /></ProtectedRouteEl>} />
+              <Route path="/impact-ledger" element={<ProtectedRouteEl><ImpactLedger /></ProtectedRouteEl>} />
+              <Route path="/notifications" element={<ProtectedRouteEl><NotificationsPage /></ProtectedRouteEl>} />
+              <Route path="/settings/profile" element={<ProtectedRouteEl><SettingsProfile /></ProtectedRouteEl>} />
+              <Route path="/settings/organisation" element={<ProtectedRouteEl><SettingsOrganisation /></ProtectedRouteEl>} />
+              <Route path="/ai-assistant" element={<ProtectedRouteEl><AIAssistantPage /></ProtectedRouteEl>} />
 
               {/* Admin */}
-              <ProtectedRouteEl path="/admin">
-                <RequireAdmin>
-                  <AdminOverview />
-                </RequireAdmin>
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/admin/verification">
-                <RequireAdmin>
-                  <AdminVerification />
-                </RequireAdmin>
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/admin/users">
-                <RequireAdmin>
-                  <AdminUsers />
-                </RequireAdmin>
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/admin/taxonomy">
-                <RequireAdmin>
-                  <AdminTaxonomy />
-                </RequireAdmin>
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/admin/disputes">
-                <RequireAdmin>
-                  <AdminDisputes />
-                </RequireAdmin>
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/admin/audit">
-                <RequireAdmin>
-                  <AdminAudit />
-                </RequireAdmin>
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/admin/integrations">
-                <RequireAdmin>
-                  <AdminIntegrations />
-                </RequireAdmin>
-              </ProtectedRouteEl>
-              <ProtectedRouteEl path="/admin/data-quality">
-                <RequireAdmin>
-                  <AdminDataQuality />
-                </RequireAdmin>
-              </ProtectedRouteEl>
+              <Route
+                path="/admin"
+                element={<ProtectedRouteEl redirectImmediately><RequireAdmin><AdminOverview /></RequireAdmin></ProtectedRouteEl>}
+              />
+              <Route
+                path="/admin/verification"
+                element={<ProtectedRouteEl redirectImmediately><RequireAdmin><AdminVerification /></RequireAdmin></ProtectedRouteEl>}
+              />
+              <Route
+                path="/admin/users"
+                element={<ProtectedRouteEl redirectImmediately><RequireAdmin><AdminUsers /></RequireAdmin></ProtectedRouteEl>}
+              />
+              <Route
+                path="/admin/taxonomy"
+                element={<ProtectedRouteEl redirectImmediately><RequireAdmin><AdminTaxonomy /></RequireAdmin></ProtectedRouteEl>}
+              />
+              <Route
+                path="/admin/disputes"
+                element={<ProtectedRouteEl redirectImmediately><RequireAdmin><AdminDisputes /></RequireAdmin></ProtectedRouteEl>}
+              />
+              <Route
+                path="/admin/audit"
+                element={<ProtectedRouteEl redirectImmediately><RequireAdmin><AdminAudit /></RequireAdmin></ProtectedRouteEl>}
+              />
+              <Route
+                path="/admin/integrations"
+                element={<ProtectedRouteEl redirectImmediately><RequireAdmin><AdminIntegrations /></RequireAdmin></ProtectedRouteEl>}
+              />
+              <Route
+                path="/admin/data-quality"
+                element={<ProtectedRouteEl redirectImmediately><RequireAdmin><AdminDataQuality /></RequireAdmin></ProtectedRouteEl>}
+              />
 
               <Route path="*" element={<NotFound />} />
             </Routes>
